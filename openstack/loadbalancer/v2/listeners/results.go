@@ -1,10 +1,10 @@
 package listeners
 
 import (
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/l7policies"
-	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/pools"
-	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/l7policies"
+	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/pools"
+	"github.com/gophercloud/gophercloud/v2/pagination"
 )
 
 type LoadBalancerID struct {
@@ -84,12 +84,56 @@ type Listener struct {
 	// A list of IPv4, IPv6 or mix of both CIDRs
 	AllowedCIDRs []string `json:"allowed_cidrs"`
 
+	// List of ciphers in OpenSSL format (colon-separated). See
+	// https://www.openssl.org/docs/man1.1.1/man1/ciphers.html
+	// New in version 2.15
+	TLSCiphers string `json:"tls_ciphers"`
+
 	// A list of TLS protocol versions. Available from microversion 2.17
 	TLSVersions []string `json:"tls_versions"`
 
 	// Tags is a list of resource tags. Tags are arbitrarily defined strings
 	// attached to the resource. New in version 2.5
 	Tags []string `json:"tags"`
+
+	// A list of ALPN protocols. Available protocols: http/1.0, http/1.1, h2
+	// New in version 2.20
+	ALPNProtocols []string `json:"alpn_protocols"`
+
+	// The TLS client authentication mode. One of the options NONE, OPTIONAL or MANDATORY.
+	// New in version 2.8
+	ClientAuthentication string `json:"client_authentication"`
+
+	// The ref of the key manager service secret containing a PEM format
+	// client CA certificate bundle for TERMINATED_HTTPS listeners.
+	// New in version 2.8
+	ClientCATLSContainerRef string `json:"client_ca_tls_container_ref"`
+
+	// The URI of the key manager service secret containing a PEM format CA
+	// revocation list file for TERMINATED_HTTPS listeners.
+	// New in version 2.8
+	ClientCRLContainerRef string `json:"client_crl_container_ref"`
+
+	// Defines whether the includeSubDomains directive should be added to
+	// the Strict-Transport-Security HTTP response header. This requires
+	// setting the hsts_max_age option as well in order to become
+	// effective. Available from microversion 2.27.
+	HSTSIncludeSubdomains bool `json:"hsts_include_subdomains"`
+
+	// The value of the max_age directive for the Strict-Transport-Security
+	// HTTP response header. Setting this enables HTTP Strict Transport
+	// Security (HSTS) for the TLS-terminated listener. Available from
+	// microversion 2.27.
+	HSTSMaxAge int `json:"hsts_max_age"`
+
+	// Defines whether the preload directive should be added to the
+	// Strict-Transport-Security HTTP response header. This requires
+	// setting the hsts_max_age option as well in order to become
+	// effective. Available from microversion 2.27.
+	HSTSPreload bool `json:"hsts_preload"`
+
+	// The operating status of the resource
+	OperatingStatus string `json:"operating_status"`
 }
 
 type Stats struct {
@@ -131,6 +175,10 @@ func (r ListenerPage) NextPageURL() (string, error) {
 
 // IsEmpty checks whether a ListenerPage struct is empty.
 func (r ListenerPage) IsEmpty() (bool, error) {
+	if r.StatusCode == 204 {
+		return true, nil
+	}
+
 	is, err := ExtractListeners(r)
 	return len(is) == 0, err
 }

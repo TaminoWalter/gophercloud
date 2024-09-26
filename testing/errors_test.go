@@ -1,25 +1,30 @@
 package testing
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 
-	"github.com/gophercloud/gophercloud"
-	th "github.com/gophercloud/gophercloud/testhelper"
+	"github.com/gophercloud/gophercloud/v2"
+	th "github.com/gophercloud/gophercloud/v2/testhelper"
 )
 
-func TestGetResponseCode(t *testing.T) {
-	respErr := gophercloud.ErrUnexpectedResponseCode{
+func TestErrUnexpectedResponseCode(t *testing.T) {
+	err := gophercloud.ErrUnexpectedResponseCode{
 		URL:            "http://example.com",
 		Method:         "GET",
 		Expected:       []int{200},
 		Actual:         404,
-		Body:           nil,
+		Body:           []byte("the response body"),
 		ResponseHeader: nil,
 	}
 
-	var err404 error = gophercloud.ErrDefault404{ErrUnexpectedResponseCode: respErr}
-
-	err, ok := err404.(gophercloud.StatusCodeError)
-	th.AssertEquals(t, true, ok)
 	th.AssertEquals(t, err.GetStatusCode(), 404)
+	th.AssertEquals(t, gophercloud.ResponseCodeIs(err, http.StatusNotFound), true)
+	th.AssertEquals(t, gophercloud.ResponseCodeIs(err, http.StatusInternalServerError), false)
+
+	//even if application code wraps our error, ResponseCodeIs() should still work
+	errWrapped := fmt.Errorf("could not frobnicate the foobar: %w", err)
+	th.AssertEquals(t, gophercloud.ResponseCodeIs(errWrapped, http.StatusNotFound), true)
+	th.AssertEquals(t, gophercloud.ResponseCodeIs(errWrapped, http.StatusInternalServerError), false)
 }

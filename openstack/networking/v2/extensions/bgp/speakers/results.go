@@ -1,8 +1,8 @@
 package speakers
 
 import (
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/pagination"
 )
 
 const jroot = "bgp_speaker"
@@ -18,7 +18,7 @@ func (r commonResult) Extract() (*BGPSpeaker, error) {
 	return &s, err
 }
 
-func (r commonResult) ExtractInto(v interface{}) error {
+func (r commonResult) ExtractInto(v any) error {
 	return r.Result.ExtractIntoStructPtr(v, jroot)
 }
 
@@ -63,6 +63,10 @@ type BGPSpeakerPage struct {
 
 // IsEmpty checks whether a BGPSpeakerPage struct is empty.
 func (r BGPSpeakerPage) IsEmpty() (bool, error) {
+	if r.StatusCode == 204 {
+		return true, nil
+	}
+
 	is, err := ExtractBGPSpeakers(r)
 	return len(is) == 0, err
 }
@@ -76,7 +80,10 @@ func ExtractBGPSpeakers(r pagination.Page) ([]BGPSpeaker, error) {
 	return s, err
 }
 
-func ExtractBGPSpeakersInto(r pagination.Page, v interface{}) error {
+// ExtractBGPSpeakersInto accepts a Page struct and an any. The former contains
+// a list of BGPSpeaker and the later should be used to store the result that would be
+// extracted from the former.
+func ExtractBGPSpeakersInto(r pagination.Page, v any) error {
 	return r.(BGPSpeakerPage).Result.ExtractIntoSlicePtr(v, "bgp_speakers")
 }
 
@@ -95,5 +102,88 @@ type CreateResult struct {
 // DeleteResult represents the result of a delete operation. Call its
 // ExtractErr method to determine if the request succeeded or failed.
 type DeleteResult struct {
+	gophercloud.ErrResult
+}
+
+// UpdateResult represents the result of an update operation. Call its Extract
+// method to interpret it as a BGPSpeaker.
+type UpdateResult struct {
+	commonResult
+}
+
+// AddBGPPeerResult represent the response of the PUT /v2.0/bgp-speakers/{bgp-speaker-id}/add-bgp-peer
+type AddBGPPeerResult struct {
+	gophercloud.Result
+}
+
+// Extract is a function that accepts a result and extracts a AddBGPPeerResult resource
+func (r AddBGPPeerResult) Extract() (*AddBGPPeerOpts, error) {
+	var s AddBGPPeerOpts
+	err := r.ExtractInto(&s)
+	return &s, err
+}
+
+func (r AddBGPPeerResult) ExtractInto(v any) error {
+	return r.Result.ExtractIntoStructPtr(v, "")
+}
+
+// RemoveBGPPeerResult represent the response of the PUT /v2.0/bgp-speakers/{bgp-speaker-id}/remove-bgp-peer
+// There is no body content for the response of a successful DELETE request.
+type RemoveBGPPeerResult struct {
+	gophercloud.ErrResult
+}
+
+// AdvertisedRoute represents an advertised route
+type AdvertisedRoute struct {
+	// NextHop IP address
+	NextHop string `json:"next_hop"`
+
+	// Destination Network
+	Destination string `json:"destination"`
+}
+
+// AdvertisedRoutePage is the page returned by a pager when you call
+type AdvertisedRoutePage struct {
+	pagination.SinglePageBase
+}
+
+// IsEmpty checks whether a AdvertisedRoutePage struct is empty.
+func (r AdvertisedRoutePage) IsEmpty() (bool, error) {
+	if r.StatusCode == 204 {
+		return true, nil
+	}
+
+	is, err := ExtractAdvertisedRoutes(r)
+	return len(is) == 0, err
+}
+
+// ExtractAdvertisedRoutes accepts a Page struct, a.k.a. AdvertisedRoutePage struct,
+// and extracts the elements into a slice of AdvertisedRoute structs.
+func ExtractAdvertisedRoutes(r pagination.Page) ([]AdvertisedRoute, error) {
+	var s []AdvertisedRoute
+	err := ExtractAdvertisedRoutesInto(r, &s)
+	return s, err
+}
+
+// ExtractAdvertisedRoutesInto extract the advertised routes from the first param into the 2nd
+func ExtractAdvertisedRoutesInto(r pagination.Page, v any) error {
+	return r.(AdvertisedRoutePage).Result.ExtractIntoSlicePtr(v, "advertised_routes")
+}
+
+// AddGatewayNetworkResult represents the data that would be PUT to
+// /v2.0/bgp-speakers/{bgp-speaker-id}/add_gateway_network
+type AddGatewayNetworkResult struct {
+	gophercloud.Result
+}
+
+func (r AddGatewayNetworkResult) Extract() (*AddGatewayNetworkOpts, error) {
+	var s AddGatewayNetworkOpts
+	err := r.ExtractInto(&s)
+	return &s, err
+}
+
+// RemoveGatewayNetworkResult represents the data that would be PUT to
+// /v2.0/bgp-speakers/{bgp-speaker-id}/remove_gateway_network
+type RemoveGatewayNetworkResult struct {
 	gophercloud.ErrResult
 }
